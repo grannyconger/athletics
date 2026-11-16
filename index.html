@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GMC Athletics Calendar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* layout idea: scoreboard header, legend rail, big month grid — wall calendar, digitized */
+  --paper:#F6F7F4;
+  --card:#FFFFFF;
+  --ink:#1C2733;
+  --ink-soft:#54616E;
+  --line:#D8DDE2;
+  --navy:#17325C;
+  --gold:#E8A713;
+  --gold-ink:#5C4100;
+  --today:#FFF4D6;
+  --focus:#1759C9;
+  --shadow:0 10px 30px rgba(23,50,92,.14);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#141A21; --card:#1D252F; --ink:#ECF0F4; --ink-soft:#9FACB9;
+    --line:#39434E; --navy:#24446F; --gold:#E8A713; --gold-ink:#FFDF9A;
+    --today:#3A3014; --focus:#7FB0FF; --shadow:0 10px 30px rgba(0,0,0,.4);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#141A21; --card:#1D252F; --ink:#ECF0F4; --ink-soft:#9FACB9;
+  --line:#39434E; --navy:#24446F; --gold:#E8A713; --gold-ink:#FFDF9A;
+  --today:#3A3014; --focus:#7FB0FF; --shadow:0 10px 30px rgba(0,0,0,.4);
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:400 17px/1.45 "Source Sans 3", "Segoe UI", Arial, sans-serif;
+}
+button{font:inherit; color:inherit; cursor:pointer}
+:is(button,select,input,textarea):focus-visible{outline:3px solid var(--focus); outline-offset:2px}
+
+/* ============ header ============ */
+header.top{
+  background:var(--navy); color:#fff; padding:14px 16px 12px;
+}
+.brandrow{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; max-width:1280px; margin:0 auto}
+.brand{display:flex; align-items:baseline; gap:10px}
+.brand .mark{
+  font:700 30px/1 "Barlow Condensed", Arial, sans-serif; letter-spacing:.04em;
+}
+.brand .mark b{color:var(--gold); font-weight:700}
+.brand .yr{font:600 16px/1 "Barlow Condensed", Arial, sans-serif; letter-spacing:.12em; opacity:.85}
+.roles{display:flex; background:rgba(255,255,255,.12); border-radius:10px; padding:3px; gap:2px}
+.roles button{
+  border:0; background:transparent; color:#fff; border-radius:8px;
+  padding:8px 14px; font-weight:600; font-size:15px;
+}
+.roles button[aria-pressed="true"]{background:#fff; color:var(--navy)}
+.coachpick{display:none; align-items:center; gap:8px}
+.coachpick.show{display:flex}
+.coachpick select{
+  border:0; border-radius:8px; padding:8px 10px; font-weight:600; font-size:15px;
+  background:#fff; color:var(--ink);
+}
+
+/* ============ toolbar ============ */
+.toolbar{
+  max-width:1280px; margin:0 auto; padding:14px 16px 0;
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+}
+.monthnav{display:flex; align-items:center; gap:6px}
+.monthnav .mlabel{
+  font:600 34px/1 "Barlow Condensed", Arial, sans-serif; letter-spacing:.02em;
+  min-width:230px; text-align:center;
+}
+.navbtn{
+  border:1.5px solid var(--line); background:var(--card); border-radius:10px;
+  width:46px; height:46px; font-size:22px; line-height:1;
+}
+.todaybtn{
+  border:1.5px solid var(--line); background:var(--card); border-radius:10px;
+  padding:10px 16px; font-weight:600;
+}
+.spacer{flex:1}
+.viewtog{display:flex; border:1.5px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.viewtog button{border:0; background:transparent; padding:10px 16px; font-weight:600}
+.viewtog button[aria-pressed="true"]{background:var(--navy); color:#fff}
+.addbtn{
+  border:0; background:var(--gold); color:#231A00; border-radius:10px;
+  padding:12px 20px; font-weight:700; font-size:17px; box-shadow:var(--shadow);
+}
+.addbtn:hover{filter:brightness(1.05)}
+
+/* ============ legend ============ */
+.legend{
+  max-width:1280px; margin:0 auto; padding:12px 16px 4px;
+  display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+}
+.legend .lab{font-size:14px; color:var(--ink-soft); margin-right:2px}
+.chip{
+  display:inline-flex; align-items:center; gap:7px;
+  border:1.5px solid var(--line); background:var(--card); border-radius:999px;
+  padding:6px 12px; font-size:14.5px; font-weight:600;
+}
+.chip .dot{width:12px; height:12px; border-radius:50%; background:var(--c)}
+.chip[aria-pressed="true"]{border-color:var(--c); box-shadow:inset 0 0 0 1px var(--c)}
+.chip.off{opacity:.42}
+.chip.clear{border-style:dashed; color:var(--ink-soft)}
+
+/* ============ month grid ============ */
+main{max-width:1280px; margin:0 auto; padding:12px 16px 60px}
+.grid{
+  background:var(--card); border:1.5px solid var(--line); border-radius:14px; overflow:hidden;
+}
+.dow{display:grid; grid-template-columns:repeat(7,1fr); background:var(--navy); color:#fff}
+.dow div{padding:9px 10px; font:600 16px/1 "Barlow Condensed", Arial, sans-serif; letter-spacing:.1em; text-align:center}
+.weeks{display:grid; grid-template-columns:repeat(7,1fr)}
+.cell{
+  border-top:1px solid var(--line); border-left:1px solid var(--line);
+  min-height:118px; padding:6px; position:relative;
+  display:flex; flex-direction:column; gap:4px; text-align:left;
+  background:var(--card); border-radius:0; align-items:stretch;
+}
+.cell:nth-child(7n+1){border-left:0}
+.cell.dim .dnum{opacity:.35}
+.cell.today{background:var(--today)}
+.cell.can-add{cursor:pointer}
+.cell.can-add:hover{background:color-mix(in srgb, var(--gold) 9%, var(--card))}
+.dnum{font:600 17px/1 "Barlow Condensed", Arial, sans-serif; color:var(--ink-soft)}
+.cell.today .dnum{color:var(--gold-ink); font-weight:700}
+.pill{
+  border:0; text-align:left; border-radius:7px; padding:3px 7px 4px;
+  font-size:13.5px; line-height:1.25; font-weight:600; color:var(--ink);
+  background:color-mix(in srgb, var(--c) 14%, var(--card));
+  border-left:4px solid var(--c);
+  overflow-wrap:anywhere;
+}
+.pill:hover{background:color-mix(in srgb, var(--c) 26%, var(--card))}
+.pill .t{font-weight:400; color:var(--ink-soft); font-size:12.5px; display:block}
+.more{font-size:13px; color:var(--ink-soft); font-weight:600; background:none; border:0; text-align:left; padding:1px 6px}
+
+/* ============ list view ============ */
+.list{display:none; flex-direction:column; gap:10px}
+.list.show{display:flex}
+.dayblock{background:var(--card); border:1.5px solid var(--line); border-radius:14px; overflow:hidden}
+.dayblock h3{
+  margin:0; padding:9px 14px; font:600 20px/1 "Barlow Condensed", Arial, sans-serif;
+  letter-spacing:.04em; background:color-mix(in srgb, var(--navy) 8%, var(--card));
+  border-bottom:1px solid var(--line);
+}
+.dayblock h3 small{color:var(--ink-soft); font-weight:500; letter-spacing:.06em}
+.rowitem{
+  display:flex; align-items:center; gap:12px; width:100%;
+  padding:10px 14px; border:0; background:none; border-top:1px solid var(--line); text-align:left;
+}
+.rowitem:first-of-type{border-top:0}
+.rowitem:hover{background:color-mix(in srgb, var(--c) 10%, var(--card))}
+.rowitem .dot{width:14px; height:14px; border-radius:50%; background:var(--c); flex:none}
+.rowitem .time{min-width:96px; color:var(--ink-soft); font-size:15px; font-variant-numeric:tabular-nums}
+.rowitem .what{font-weight:600}
+.empty{padding:40px; text-align:center; color:var(--ink-soft)}
+
+/* ============ dialogs ============ */
+.scrim{
+  position:fixed; inset:0; background:rgba(12,20,30,.55); display:none;
+  align-items:center; justify-content:center; padding:16px; z-index:50;
+}
+.scrim.show{display:flex}
+.panel{
+  background:var(--card); border-radius:16px; box-shadow:var(--shadow);
+  width:min(560px, 100%); max-height:min(92vh, 860px); overflow:auto;
+}
+.panel header{
+  position:sticky; top:0; background:var(--navy); color:#fff;
+  padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+}
+.panel header h2{margin:0; font:600 24px/1.1 "Barlow Condensed", Arial, sans-serif; letter-spacing:.03em}
+.xbtn{border:0; background:rgba(255,255,255,.15); color:#fff; border-radius:8px; width:38px; height:38px; font-size:19px}
+.panel .body{padding:16px 18px 20px; display:flex; flex-direction:column; gap:14px}
+.f label{display:block; font-weight:600; font-size:15px; margin-bottom:5px}
+.f input[type=text], .f input[type=date], .f input[type=time], .f select, .f textarea{
+  width:100%; border:1.5px solid var(--line); border-radius:10px; background:var(--card);
+  padding:11px 12px; font:inherit; color:var(--ink);
+}
+.sportgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:7px}
+.sportbtn{
+  border:1.5px solid var(--line); background:var(--card); border-radius:10px;
+  padding:9px 6px; font-weight:600; font-size:14.5px; display:flex; align-items:center; gap:7px; justify-content:center;
+}
+.sportbtn .dot{width:12px; height:12px; border-radius:50%; background:var(--c); flex:none}
+.sportbtn[aria-pressed="true"]{border-color:var(--c); box-shadow:inset 0 0 0 1.5px var(--c); background:color-mix(in srgb, var(--c) 10%, var(--card))}
+.seg{display:flex; border:1.5px solid var(--line); border-radius:10px; overflow:hidden}
+.seg button{flex:1; border:0; background:transparent; padding:10px 4px; font-weight:600; font-size:15px}
+.seg button[aria-pressed="true"]{background:var(--navy); color:#fff}
+.two{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.checkrow{display:flex; align-items:center; gap:9px; font-weight:600; font-size:15.5px}
+.checkrow input{width:21px; height:21px}
+.repeatbox{border:1.5px dashed var(--line); border-radius:10px; padding:11px 12px; display:flex; flex-direction:column; gap:10px}
+.repeatbox .until{display:none; align-items:center; gap:8px}
+.repeatbox .until.show{display:flex}
+.preview{
+  background:color-mix(in srgb, var(--gold) 13%, var(--card));
+  border-left:4px solid var(--gold); border-radius:8px; padding:9px 12px; font-size:15px;
+}
+.preview b{font-weight:700}
+.actions{display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap}
+.primary{border:0; background:var(--gold); color:#231A00; border-radius:10px; padding:12px 22px; font-weight:700; font-size:16.5px}
+.ghost{border:1.5px solid var(--line); background:var(--card); border-radius:10px; padding:11px 18px; font-weight:600}
+.danger{border:1.5px solid #C0392B; color:#C0392B; background:var(--card); border-radius:10px; padding:11px 18px; font-weight:600}
+.hint{font-size:14px; color:var(--ink-soft)}
+.detail-head{display:flex; align-items:center; gap:10px}
+.detail-head .dot{width:16px; height:16px; border-radius:50%; background:var(--c)}
+.detail-title{font-size:19px; font-weight:700}
+.kv{display:grid; grid-template-columns:120px 1fr; gap:6px 12px; font-size:16px}
+.kv dt{color:var(--ink-soft)} .kv dd{margin:0; font-weight:600}
+.toast{
+  position:fixed; left:50%; bottom:26px; transform:translateX(-50%);
+  background:var(--navy); color:#fff; border-radius:10px; padding:12px 20px;
+  font-weight:600; box-shadow:var(--shadow); opacity:0; pointer-events:none;
+  transition:opacity .25s; z-index:80; max-width:90vw; text-align:center;
+}
+.toast.show{opacity:1}
+footer{max-width:1280px; margin:0 auto; padding:0 16px 40px; color:var(--ink-soft); font-size:14px}
+
+/* ============ mobile ============ */
+@media (max-width:760px){
+  .brand .mark{font-size:24px}
+  .monthnav .mlabel{font-size:26px; min-width:0; flex:1}
+  .monthnav{flex:1}
+  .cell{min-height:64px; padding:4px}
+  .pill{display:none}
+  .more{display:none}
+  .cell .dots{display:flex; flex-wrap:wrap; gap:3px; margin-top:2px}
+  .cell .dots i{width:9px; height:9px; border-radius:50%; background:var(--c)}
+  .two{grid-template-columns:1fr}
+}
+@media (min-width:761px){ .cell .dots{display:none} }
+@media (prefers-reduced-motion: reduce){ *{transition:none !important} }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brandrow">
+    <div class="brand">
+      <span class="mark">GMC <b>BLAZERS</b> ATHLETICS</span>
+      <span class="yr">2026–27</span>
+    </div>
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+      <div class="coachpick" id="coachpick">
+        <label for="coachsport" style="font-size:14px; font-weight:600">My sport:</label>
+        <select id="coachsport"></select>
+      </div>
+      <div class="roles" role="group" aria-label="Who is using this">
+        <button id="role-ad" aria-pressed="true">Athletic Director</button>
+        <button id="role-coach" aria-pressed="false">Coach</button>
+        <button id="role-public" aria-pressed="false">Public</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="monthnav">
+    <button class="navbtn" id="prev" aria-label="Previous month">‹</button>
+    <div class="mlabel" id="mlabel">September 2026</div>
+    <button class="navbtn" id="next" aria-label="Next month">›</button>
+  </div>
+  <button class="todaybtn" id="todaybtn">Today</button>
+  <div class="spacer"></div>
+  <div class="viewtog" role="group" aria-label="View">
+    <button id="v-month" aria-pressed="true">Month</button>
+    <button id="v-list" aria-pressed="false">List</button>
+  </div>
+  <button class="addbtn" id="addbtn">+ Add event</button>
+</div>
+
+<div class="legend" id="legend"></div>
+
+<main>
+  <div class="grid" id="monthview">
+    <div class="dow"><div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div></div>
+    <div class="weeks" id="weeks"></div>
+  </div>
+  <div class="list" id="listview"></div>
+</main>
+
+<footer>
+  Prototype — events you add are saved in this browser only. Loaded with the real Fall 2026 schedule (Aug–Sep) from the athletics spreadsheet.
+</footer>
+
+<!-- add/edit dialog -->
+<div class="scrim" id="formscrim">
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="formtitle">
+    <header><h2 id="formtitle">Add event</h2><button class="xbtn" data-close="formscrim" aria-label="Close">✕</button></header>
+    <div class="body">
+      <div class="f">
+        <label for="f-date">Date</label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="f">
+        <label>Sport</label>
+        <div class="sportgrid" id="f-sports"></div>
+      </div>
+      <div class="f">
+        <label>What kind of event?</label>
+        <div class="seg" id="f-type">
+          <button data-v="game" aria-pressed="false">Game / Meet</button>
+          <button data-v="practice" aria-pressed="true">Practice</button>
+          <button data-v="tryout" aria-pressed="false">Tryout</button>
+          <button data-v="meeting" aria-pressed="false">Meeting</button>
+          <button data-v="other" aria-pressed="false">Other</button>
+        </div>
+      </div>
+      <div id="gamefields" style="display:none; flex-direction:column; gap:14px">
+        <div class="two">
+          <div class="f">
+            <label>Home or away?</label>
+            <div class="seg" id="f-ha">
+              <button data-v="home" aria-pressed="true">Home (vs)</button>
+              <button data-v="away" aria-pressed="false">Away (@)</button>
+            </div>
+          </div>
+          <div class="f">
+            <label for="f-opp">Opponent / event name</label>
+            <input type="text" id="f-opp" placeholder="e.g. Landrum">
+          </div>
+        </div>
+        <div class="f">
+          <label>Level</label>
+          <div style="display:flex; gap:18px">
+            <span class="checkrow"><input type="checkbox" id="f-v" checked><label for="f-v" style="margin:0; font-weight:600">Varsity</label></span>
+            <span class="checkrow"><input type="checkbox" id="f-jv"><label for="f-jv" style="margin:0; font-weight:600">JV</label></span>
+          </div>
+        </div>
+      </div>
+      <div class="two">
+        <div class="f">
+          <label for="f-start">Start time</label>
+          <input type="time" id="f-start">
+        </div>
+        <div class="f">
+          <label for="f-end">End time <span style="font-weight:400; color:var(--ink-soft)">(optional)</span></label>
+          <input type="time" id="f-end">
+        </div>
+      </div>
+      <div class="f">
+        <label for="f-notes">Notes <span style="font-weight:400; color:var(--ink-soft)">(optional)</span></label>
+        <input type="text" id="f-notes" placeholder="e.g. Weight Room, bring physicals">
+      </div>
+      <div class="repeatbox" id="repeatwrap">
+        <span class="checkrow"><input type="checkbox" id="f-repeat"><label for="f-repeat" style="margin:0">Repeats every week on this day</label></span>
+        <div class="until" id="untilrow">
+          <label for="f-until" style="font-weight:600">until</label>
+          <input type="date" id="f-until" style="border:1.5px solid var(--line); border-radius:10px; padding:10px 12px; font:inherit; background:var(--card); color:var(--ink)">
+        </div>
+      </div>
+      <div class="preview" id="preview">On the calendar: <b>—</b></div>
+      <div class="actions">
+        <button class="ghost" data-close="formscrim">Cancel</button>
+        <button class="primary" id="savebtn">Save event</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- detail dialog -->
+<div class="scrim" id="detailscrim">
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="dtitle">
+    <header><h2 id="dtitle">Event</h2><button class="xbtn" data-close="detailscrim" aria-label="Close">✕</button></header>
+    <div class="body" id="detailbody"></div>
+  </div>
+</div>
+
+<!-- day dialog (mobile) -->
+<div class="scrim" id="dayscrim">
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="daytitle">
+    <header><h2 id="daytitle">Day</h2><button class="xbtn" data-close="dayscrim" aria-label="Close">✕</button></header>
+    <div class="body" id="daybody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* __SEED__ */
+const SEED = [{"date":"2026-08-03","title":"VB practice 3:00-5:00","sport":"Volleyball","type":"practice","away":false,"time":"3:00-5:00"},{"date":"2026-08-04","title":"VB Tryouts 3:00-5:00","sport":"Volleyball","type":"tryout","away":false,"time":"3:00-5:00"},{"date":"2026-08-05","title":"VB Tryouts 3:00-5:00","sport":"Volleyball","type":"tryout","away":false,"time":"3:00-5:00"},{"date":"2026-08-06","title":"VB practice 3:00-5:00","sport":"Volleyball","type":"practice","away":false,"time":"3:00-5:00"},{"date":"2026-08-03","title":"GGolf Tryouts 5:30-7","sport":"Girls Golf","type":"tryout","away":false,"time":"5:30-7"},{"date":"2026-08-04","title":"GGolf Tryouts 5:30-7","sport":"Girls Golf","type":"tryout","away":false,"time":"5:30-7"},{"date":"2026-08-05","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-08-06","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-08-03","title":"XC Strength Training (Weight Room) 3:00 - 4:00","sport":"Cross Country","type":"practice","away":false,"time":"3:00 - 4:00"},{"date":"2026-08-05","title":"XC Strength Training (Weight Room) 3:00 - 4:00","sport":"Cross Country","type":"practice","away":false,"time":"3:00 - 4:00"},{"date":"2026-08-06","title":"Girls Bball Strength Training (Weight Room) 3:10 - 4:10","sport":"Girls Basketball","type":"practice","away":false,"time":"3:10 - 4:10"},{"date":"2026-08-07","title":"Brayden Tiernan 12:00-3:00 DM","sport":"School","type":"other","away":false,"time":"12:00-3:00"},{"date":"2026-08-10","title":"VB practice 3:00-5:00","sport":"Volleyball","type":"practice","away":false,"time":"3:00-5:00"},{"date":"2026-08-11","title":"VB practice 3:00-5:00","sport":"Volleyball","type":"practice","away":false,"time":"3:00-5:00"},{"date":"2026-08-12","title":"VB practice 3:00-5:00","sport":"Volleyball","type":"practice","away":false,"time":"3:00-5:00"},{"date":"2026-08-13","title":"VB practice 3:00-5:00","sport":"Volleyball","type":"practice","away":false,"time":"3:00-5:00"},{"date":"2026-08-15","title":"V Volleyball @ Byrnes","sport":"Volleyball","type":"game","away":true,"time":""},{"date":"2026-08-10","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-08-11","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-08-12","title":"GGolf @Greer w/Chapman 4:30","sport":"Girls Golf","type":"game","away":true,"time":"4:30"},{"date":"2026-08-13","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-08-11","title":"Volleyball Parent Meeting 5:45","sport":"Volleyball","type":"meeting","away":false,"time":"5:45"},{"date":"2026-08-10","title":"XC Strength Training (Weight Room) 3:00 - 4:00","sport":"Cross Country","type":"practice","away":false,"time":"3:00 - 4:00"},{"date":"2026-08-11","title":"XC Parent Meeting (College Sem) 6:00 p.m.","sport":"Cross Country","type":"meeting","away":false,"time":"6:00 p.m."},{"date":"2026-08-12","title":"XC Strength Training (Weight Room) 3:00 - 4:00","sport":"Cross Country","type":"practice","away":false,"time":"3:00 - 4:00"},{"date":"2026-08-10","title":"New to GMC Parent Meeting 5-7 (Starts at 6:00)","sport":"School","type":"meeting","away":false,"time":"5-7"},{"date":"2026-08-10","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-08-11","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-08-12","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-08-13","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-08-17","title":"VB practice 3:00-5:00","sport":"Volleyball","type":"practice","away":false,"time":"3:00-5:00"},{"date":"2026-08-18","title":"VB practice 3:00-5:00","sport":"Volleyball","type":"practice","away":false,"time":"3:00-5:00"},{"date":"2026-08-19","title":"VB practice 3:00-5:00","sport":"Volleyball","type":"practice","away":false,"time":"3:00-5:00"},{"date":"2026-08-20","title":"JV & V VB vs GTC 5:30/7:00","sport":"Volleyball","type":"game","away":false,"time":"5:30/7:00"},{"date":"2026-08-21","title":"Fall Sports Pics 1:30 in gym","sport":"School","type":"other","away":false,"time":"1:30"},{"date":"2026-08-22","title":"Swim @ Gray Collegiate Sprint Classic USC","sport":"Swim","type":"game","away":true,"time":""},{"date":"2026-08-17","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-08-18","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-08-19","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-08-20","title":"GGolf vs Christ Church 4pm","sport":"Girls Golf","type":"game","away":false,"time":"4pm"},{"date":"2026-08-17","title":"Open House Starting at 5-8 Starts at 6:00","sport":"School","type":"meeting","away":false,"time":"5-8"},{"date":"2026-08-18","title":"Girls Bball Strength Training (Weight Room) 3:10 - 4:10","sport":"Girls Basketball","type":"practice","away":false,"time":"3:10 - 4:10"},{"date":"2026-08-19","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-08-20","title":"Girls Bball Strength Training (Weight Room) 3:10 - 4:10","sport":"Girls Basketball","type":"practice","away":false,"time":"3:10 - 4:10"},{"date":"2026-08-17","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-08-17","title":"XC Strength Training (Weight Room) 3:00 - 4:00","sport":"Cross Country","type":"practice","away":false,"time":"3:00 - 4:00"},{"date":"2026-08-18","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-08-19","title":"XC Strength Training (Weight Room) 3:00 - 4:00","sport":"Cross Country","type":"practice","away":false,"time":"3:00 - 4:00"},{"date":"2026-08-20","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-08-17","title":"Boys Bball Strength Training (Weight Room) 4:00-5:00","sport":"Boys Basketball","type":"practice","away":false,"time":"4:00-5:00"},{"date":"2026-08-18","title":"Boys Bball Strength Training (Weight Room) 3:00-4:00","sport":"Boys Basketball","type":"practice","away":false,"time":"3:00-4:00"},{"date":"2026-08-19","title":"Boys Bball Strength Training (Weight Room) 4:00-5:00","sport":"Boys Basketball","type":"practice","away":false,"time":"4:00-5:00"},{"date":"2026-08-24","title":"JV & V VB @ GTC 5:30/7:00","sport":"Volleyball","type":"game","away":true,"time":"5:30/7:00"},{"date":"2026-08-25","title":"VB practice 3:00-5:00","sport":"Volleyball","type":"practice","away":false,"time":"3:00-5:00"},{"date":"2026-08-26","title":"VB practice 3:00-5:00","sport":"Volleyball","type":"practice","away":false,"time":"3:00-5:00"},{"date":"2026-08-27","title":"JV & V VB vs Landrum 5:30/7:00","sport":"Volleyball","type":"game","away":false,"time":"5:30/7:00"},{"date":"2026-08-29","title":"XC @ WNCCC Carnival","sport":"Cross Country","type":"game","away":true,"time":""},{"date":"2026-08-24","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-08-25","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-08-26","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-08-27","title":"JV & V Tennis vs Landrum 4:30","sport":"Tennis","type":"game","away":false,"time":"4:30"},{"date":"2026-08-24","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-08-25","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-08-26","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-08-27","title":"GGolf vs Greer 4pm","sport":"Girls Golf","type":"game","away":false,"time":"4pm"},{"date":"2026-08-24","title":"XC Strength Training (Weight Room) 3:00 - 4:00","sport":"Cross Country","type":"practice","away":false,"time":"3:00 - 4:00"},{"date":"2026-08-25","title":"Girls Bball Strength Training (Weight Room) 3:10 - 4:10","sport":"Girls Basketball","type":"practice","away":false,"time":"3:10 - 4:10"},{"date":"2026-08-26","title":"XC Strength Training (Weight Room) 3:00 - 4:00","sport":"Cross Country","type":"practice","away":false,"time":"3:00 - 4:00"},{"date":"2026-08-27","title":"Girls Bball Strength Training (Weight Room) 3:10 - 4:10","sport":"Girls Basketball","type":"practice","away":false,"time":"3:10 - 4:10"},{"date":"2026-08-24","title":"Boys Bball Strength Training (Weight Room) 4:00-5:00","sport":"Boys Basketball","type":"practice","away":false,"time":"4:00-5:00"},{"date":"2026-08-25","title":"Boys Bball Strength Training (Weight Room) 3:00-4:00","sport":"Boys Basketball","type":"practice","away":false,"time":"3:00-4:00"},{"date":"2026-08-26","title":"Boys Bball Strength Training (Weight Room) 4:00-5:00","sport":"Boys Basketball","type":"practice","away":false,"time":"4:00-5:00"},{"date":"2026-08-26","title":"Swim @ Spaulding Farm Pool Tri Meet Dan/SJO","sport":"Swim","type":"game","away":true,"time":""},{"date":"2026-08-27","title":"Swim @ Newberry Quad Mid/Newberry, Lex","sport":"Swim","type":"game","away":true,"time":""},{"date":"2026-08-31","title":"VB practice 3:00-5:00","sport":"Volleyball","type":"practice","away":false,"time":"3:00-5:00"},{"date":"2026-09-01","title":"JV & Varsity VB @ Woodruff 5:30/7:00","sport":"Volleyball","type":"game","away":true,"time":"5:30/7:00"},{"date":"2026-09-02","title":"VB practice 3:00-5:00","sport":"Volleyball","type":"practice","away":false,"time":"3:00-5:00"},{"date":"2026-09-03","title":"JV & V VB @ SSC 5:30/7:00","sport":"Volleyball","type":"game","away":true,"time":"5:30/7:00"},{"date":"2026-09-05","title":"XC @ Eye Opener","sport":"Cross Country","type":"game","away":true,"time":""},{"date":"2026-08-31","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-09-01","title":"JV & V Tennis @ Woodruff 4:30","sport":"Tennis","type":"game","away":true,"time":"4:30"},{"date":"2026-09-02","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-09-03","title":"JV & V Tennis @ SSC 4:30","sport":"Tennis","type":"game","away":true,"time":"4:30"},{"date":"2026-08-31","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-09-01","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-09-02","title":"GGolf @ Southside Christian 4:30","sport":"Girls Golf","type":"game","away":true,"time":"4:30"},{"date":"2026-09-03","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-08-31","title":"XC Strength Training (Weight Room) 3:00 - 4:00","sport":"Cross Country","type":"practice","away":false,"time":"3:00 - 4:00"},{"date":"2026-09-02","title":"XC Strength Training (Weight Room) 3:00 - 4:00","sport":"Cross Country","type":"practice","away":false,"time":"3:00 - 4:00"},{"date":"2026-08-31","title":"Boys Bball Strength Training (Weight Room) 4:00-5:00","sport":"Boys Basketball","type":"practice","away":false,"time":"4:00-5:00"},{"date":"2026-09-01","title":"Boys Bball Practice 3:00-4:30","sport":"Boys Basketball","type":"practice","away":false,"time":"3:00-4:30"},{"date":"2026-09-02","title":"Boys Bball Strength Training (Weight Room) 4:00-5:00","sport":"Boys Basketball","type":"practice","away":false,"time":"4:00-5:00"},{"date":"2026-09-03","title":"Boys BBall Practice 4:00-5:30","sport":"Boys Basketball","type":"practice","away":false,"time":"4:00-5:30"},{"date":"2026-08-31","title":"JV & V Tennis vs Chapman 4:30","sport":"Tennis","type":"game","away":false,"time":"4:30"},{"date":"2026-09-03","title":"Boys Bball Fall League Practice 6:00-7:00","sport":"Boys Basketball","type":"practice","away":false,"time":"6:00-7:00"},{"date":"2026-09-07","title":"VB practice 9:00-11:30","sport":"Volleyball","type":"practice","away":false,"time":"9:00-11:30"},{"date":"2026-09-08","title":"JV & V VB vs MVP 5:30/7:00","sport":"Volleyball","type":"game","away":false,"time":"5:30/7:00"},{"date":"2026-09-09","title":"VB practice 3:00-5:00","sport":"Volleyball","type":"practice","away":false,"time":"3:00-5:00"},{"date":"2026-09-10","title":"JV & V VB @ Clinton 5:30/7:00","sport":"Volleyball","type":"game","away":true,"time":"5:30/7:00"},{"date":"2026-09-12","title":"XC @ Yellow Jacket Invitational","sport":"Cross Country","type":"game","away":true,"time":""},{"date":"2026-09-07","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-09-08","title":"JV & V Tennis vs MVP 4:30","sport":"Tennis","type":"game","away":false,"time":"4:30"},{"date":"2026-09-09","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-09-10","title":"JV & V Tennis @ Clinton 4:30","sport":"Tennis","type":"game","away":true,"time":"4:30"},{"date":"2026-09-12","title":"VB practice 9:00 -10:30am","sport":"Volleyball","type":"practice","away":false,"time":"9:00 -10:30am"},{"date":"2026-09-07","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-09-08","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-09-09","title":"GGolf @TR 4:30","sport":"Girls Golf","type":"game","away":true,"time":"4:30"},{"date":"2026-09-10","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-09-11","title":"Swim to Charleston","sport":"Swim","type":"other","away":false,"time":""},{"date":"2026-09-07","title":"XC Strength Training (Weight Room) 3:00 - 4:00","sport":"Cross Country","type":"practice","away":false,"time":"3:00 - 4:00"},{"date":"2026-09-09","title":"XC Strength Training (Weight Room) 3:00 - 4:00","sport":"Cross Country","type":"practice","away":false,"time":"3:00 - 4:00"},{"date":"2026-09-08","title":"Boys Bball Strength Training (Weight Room) 3:00-4:00","sport":"Boys Basketball","type":"practice","away":false,"time":"3:00-4:00"},{"date":"2026-09-10","title":"Boys Bball Practice 4:00-5:30","sport":"Boys Basketball","type":"practice","away":false,"time":"4:00-5:30"},{"date":"2026-09-07","title":"Labor Day no school!","sport":"School","type":"other","away":false,"time":""},{"date":"2026-09-10","title":"Boys Bball Fall League Practice 6:00-7:00","sport":"Boys Basketball","type":"practice","away":false,"time":"6:00-7:00"},{"date":"2026-09-14","title":"VB practice 3:45-5:15","sport":"Volleyball","type":"practice","away":false,"time":"3:45-5:15"},{"date":"2026-09-15","title":"JV & V VB vs Chesnee 5:30/7:00","sport":"Volleyball","type":"game","away":false,"time":"5:30/7:00"},{"date":"2026-09-16","title":"VB practice 3:00-5:00","sport":"Volleyball","type":"practice","away":false,"time":"3:00-5:00"},{"date":"2026-09-17","title":"JV & V VB @ HPA 5:30/7:00","sport":"Volleyball","type":"game","away":true,"time":"5:30/7:00"},{"date":"2026-09-18","title":"Swim Greenville Country Aquatic Out all Day","sport":"Swim","type":"other","away":false,"time":""},{"date":"2026-09-19","title":"No XC","sport":"Cross Country","type":"other","away":false,"time":""},{"date":"2026-09-14","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-09-15","title":"JV & V Tennis vs Chesnee 4:30","sport":"Tennis","type":"game","away":false,"time":"4:30"},{"date":"2026-09-16","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-09-17","title":"JV & V Tennis @ HPA 4:30","sport":"Tennis","type":"game","away":true,"time":"4:30"},{"date":"2026-09-19","title":"VB practice 9:00-10:00 am","sport":"Volleyball","type":"practice","away":false,"time":"9:00-10:00 am"},{"date":"2026-09-14","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-09-15","title":"GGolf v. Blue Ridge 4:30","sport":"Girls Golf","type":"game","away":false,"time":"4:30"},{"date":"2026-09-16","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-09-17","title":"GGolf @ BR/Riverside 4:30","sport":"Girls Golf","type":"game","away":true,"time":"4:30"},{"date":"2026-09-14","title":"XC Strength Training (Weight Room) 3:00 - 4:00","sport":"Cross Country","type":"practice","away":false,"time":"3:00 - 4:00"},{"date":"2026-09-15","title":"Possible Boiling Springs XC","sport":"Cross Country","type":"other","away":false,"time":""},{"date":"2026-09-16","title":"XC Strength Training (Weight Room) 3:00 - 4:00","sport":"Cross Country","type":"practice","away":false,"time":"3:00 - 4:00"},{"date":"2026-09-17","title":"Possible Woodruff XC","sport":"Cross Country","type":"other","away":false,"time":""},{"date":"2026-09-14","title":"Boys Bball Strength Training (Weight Room) 4:00-5:00","sport":"Boys Basketball","type":"practice","away":false,"time":"4:00-5:00"},{"date":"2026-09-15","title":"Boys Bball Strength Training (Weight Room) 3:00-4:00","sport":"Boys Basketball","type":"practice","away":false,"time":"3:00-4:00"},{"date":"2026-09-17","title":"Boys Bball Practice 4:00-5:30","sport":"Boys Basketball","type":"practice","away":false,"time":"4:00-5:30"},{"date":"2026-09-14","title":"Boys Bball Fall League Practice 5:30-6:30","sport":"Boys Basketball","type":"practice","away":false,"time":"5:30-6:30"},{"date":"2026-09-14","title":"Make up Fitnessgram for PE 3-3:45 pm","sport":"School","type":"other","away":false,"time":"3-3:45 pm"},{"date":"2026-09-15","title":"Swim @ Devenger pool vs Greenville Hurricanes","sport":"Swim","type":"game","away":true,"time":""},{"date":"2026-09-21","title":"VB practice 3:00-5:00","sport":"Volleyball","type":"practice","away":false,"time":"3:00-5:00"},{"date":"2026-09-22","title":"JV & V VB @ Landrum 5:30/7:00","sport":"Volleyball","type":"game","away":true,"time":"5:30/7:00"},{"date":"2026-09-23","title":"VB practice 3:00-5:00","sport":"Volleyball","type":"practice","away":false,"time":"3:00-5:00"},{"date":"2026-09-24","title":"JV & V VB vs. Woodruff 5:30/7:00","sport":"Volleyball","type":"game","away":false,"time":"5:30/7:00"},{"date":"2026-09-25","title":"XC @ Low Country (return on Sunday)","sport":"Cross Country","type":"game","away":true,"time":""},{"date":"2026-09-21","title":"XC Strength Training (Weight Room) 3:00 - 4:00","sport":"Cross Country","type":"practice","away":false,"time":"3:00 - 4:00"},{"date":"2026-09-22","title":"JV & V Tennis @ Landrum 4:30","sport":"Tennis","type":"game","away":true,"time":"4:30"},{"date":"2026-09-23","title":"XC Strength Training (Weight Room) 3:00 - 4:00","sport":"Cross Country","type":"practice","away":false,"time":"3:00 - 4:00"},{"date":"2026-09-24","title":"JV & V Tennis vs Woodruff 4:30","sport":"Tennis","type":"game","away":false,"time":"4:30"},{"date":"2026-09-26","title":"Region Swim @ Clemson","sport":"Swim","type":"game","away":true,"time":""},{"date":"2026-09-21","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-09-22","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-09-23","title":"GGolf @Greenville County 9am-4pm","sport":"Girls Golf","type":"game","away":true,"time":"9am"},{"date":"2026-09-24","title":"GGolf vs Brashier 4pm","sport":"Girls Golf","type":"game","away":false,"time":"4pm"},{"date":"2026-09-21","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-09-23","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-09-21","title":"Boys Bball Strength Training (Weight Room) 4:00-5:00","sport":"Boys Basketball","type":"practice","away":false,"time":"4:00-5:00"},{"date":"2026-09-23","title":"Boys Bball Strength Training (Weight Room) 4:00-5:00","sport":"Boys Basketball","type":"practice","away":false,"time":"4:00-5:00"},{"date":"2026-09-21","title":"Boys Bball Fall League Practice 5:30-6:30","sport":"Boys Basketball","type":"practice","away":false,"time":"5:30-6:30"},{"date":"2026-09-21","title":"JV & V Tennis vs Clinton 4:30","sport":"Tennis","type":"game","away":false,"time":"4:30"},{"date":"2026-09-28","title":"VB practice 3:00-5:00","sport":"Volleyball","type":"practice","away":false,"time":"3:00-5:00"},{"date":"2026-09-29","title":"JV & V VB vs SSC 5:30/7:00","sport":"Volleyball","type":"game","away":false,"time":"5:30/7:00"},{"date":"2026-09-30","title":"VB practice 3:00-5:00","sport":"Volleyball","type":"practice","away":false,"time":"3:00-5:00"},{"date":"2026-09-28","title":"XC Strength Training (Weight Room) 3:00 - 4:00","sport":"Cross Country","type":"practice","away":false,"time":"3:00 - 4:00"},{"date":"2026-09-29","title":"JV & V Tennis vs SSC 4:30","sport":"Tennis","type":"game","away":false,"time":"4:30"},{"date":"2026-09-30","title":"XC Strength Training (Weight Room) 3:00 - 4:00","sport":"Cross Country","type":"practice","away":false,"time":"3:00 - 4:00"},{"date":"2026-09-28","title":"GGolf @Eastside 4pm","sport":"Girls Golf","type":"game","away":true,"time":"4pm"},{"date":"2026-09-29","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-09-30","title":"GGolf practice 5:30-7","sport":"Girls Golf","type":"practice","away":false,"time":"5:30-7"},{"date":"2026-09-30","title":"Tennis practice 3:30-5:30","sport":"Tennis","type":"practice","away":false,"time":"3:30-5:30"},{"date":"2026-09-28","title":"Boys Bball Strength Training (Weight Room) 4:00-5:00","sport":"Boys Basketball","type":"practice","away":false,"time":"4:00-5:00"},{"date":"2026-09-29","title":"Boys Bball Strength Training (Weight Room) 3:00-4:00","sport":"Boys Basketball","type":"practice","away":false,"time":"3:00-4:00"},{"date":"2026-09-28","title":"Boys Bball Fall League Practice 5:30-6:30","sport":"Boys Basketball","type":"practice","away":false,"time":"5:30-6:30"},{"date":"2026-09-28","title":"JV & V Tennis @ Chapman 4:30","sport":"Tennis","type":"game","away":true,"time":"4:30"}];
+
+const SPORTS = {
+  "Volleyball":      {c:"#C8521C", abbr:"VB"},
+  "Tennis":          {c:"#1E7A3C", abbr:"Tennis"},
+  "Girls Golf":      {c:"#7A3A9A", abbr:"GGolf"},
+  "Cross Country":   {c:"#B01E3C", abbr:"XC"},
+  "Swim":            {c:"#0E6FA8", abbr:"Swim"},
+  "Boys Basketball": {c:"#8A5A00", abbr:"BBB"},
+  "Girls Basketball":{c:"#B33A8A", abbr:"GBB"},
+  "School":          {c:"#5B6670", abbr:"School"}
+};
+const TYPE_LABEL = {game:"Game / Meet", practice:"Practice", tryout:"Tryout", meeting:"Meeting", other:"Other"};
+
+/* ---------- state ---------- */
+let events = loadEvents();
+let role = "ad";                 // ad | coach | public
+let coachSport = "Volleyball";
+let view = "month";              // month | list
+let cur = {y:2026, m:8};         // month shown (m is 0-based: 8 = September)
+let hiddenSports = new Set();    // legend filters
+let editingId = null;
+
+function loadEvents(){
+  try{
+    const raw = localStorage.getItem("gmc-athletics-v1");
+    if(raw){ const p = JSON.parse(raw); if(Array.isArray(p) && p.length) return p; }
+  }catch(e){}
+  return SEED.map((e,i)=>({id:"seed"+i, ...e}));
+}
+function persist(){
+  try{ localStorage.setItem("gmc-athletics-v1", JSON.stringify(events)); }catch(e){}
+}
+function uid(){ return "e" + Date.now() + Math.random().toString(36).slice(2,7); }
+
+/* ---------- date helpers ---------- */
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DOWS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+function iso(y,m,d){ return y + "-" + String(m+1).padStart(2,"0") + "-" + String(d).padStart(2,"0"); }
+function fromISO(s){ const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); }
+function todayISO(){ const t = new Date(); return iso(t.getFullYear(), t.getMonth(), t.getDate()); }
+function fmtTime(t){ // "15:30" -> "3:30"
+  if(!t) return "";
+  let [h,mi] = t.split(":").map(Number);
+  const ap = h >= 12 ? "" : ""; h = ((h + 11) % 12) + 1;
+  return h + ":" + String(mi).padStart(2,"0");
+}
+
+/* ---------- title compose ---------- */
+function composeTitle(f){
+  const ab = SPORTS[f.sport] ? SPORTS[f.sport].abbr : f.sport;
+  let t = "";
+  if(f.type === "game"){
+    const lvl = [f.jv ? "JV" : null, f.v ? "V" : null].filter(Boolean).join(" & ");
+    t = (lvl ? lvl + " " : "") + ab + " " + (f.away ? "@ " : "vs ") + (f.opponent || "TBD");
+  }else if(f.type === "practice"){ t = ab + " practice"; }
+  else if(f.type === "tryout"){ t = ab + " tryouts"; }
+  else if(f.type === "meeting"){ t = ab + " meeting" + (f.notes ? "" : ""); }
+  else { t = ab + (f.notes ? "" : " event"); }
+  const time = f.start ? fmtTime(f.start) + (f.end ? "-" + fmtTime(f.end) : "") : "";
+  if(time) t += " " + time;
+  if(f.notes) t += " (" + f.notes + ")";
+  return t;
+}
+
+/* ---------- permissions ---------- */
+function canEdit(ev){
+  if(role === "ad") return true;
+  if(role === "coach") return ev.sport === coachSport;
+  return false;
+}
+function canAdd(){ return role !== "public"; }
+
+/* ---------- rendering ---------- */
+const weeksEl = document.getElementById("weeks");
+const listEl = document.getElementById("listview");
+const mlabel = document.getElementById("mlabel");
+
+function visibleEvents(dateStr){
+  return events
+    .filter(e => e.date === dateStr && !hiddenSports.has(e.sport))
+    .sort((a,b) => (a.time||"99").localeCompare(b.time||"99"));
+}
+
+function render(){
+  mlabel.textContent = MONTHS[cur.m] + " " + cur.y;
+  document.getElementById("monthview").style.display = view === "month" ? "" : "none";
+  listEl.classList.toggle("show", view === "list");
+  if(view === "month") renderMonth(); else renderList();
+  renderLegend();
+}
+
+function renderMonth(){
+  weeksEl.innerHTML = "";
+  const first = new Date(cur.y, cur.m, 1);
+  const startOffset = first.getDay();
+  const daysIn = new Date(cur.y, cur.m+1, 0).getDate();
+  const prevDays = new Date(cur.y, cur.m, 0).getDate();
+  const totalCells = Math.ceil((startOffset + daysIn) / 7) * 7;
+  const tIso = todayISO();
+
+  for(let i=0; i<totalCells; i++){
+    const dayNum = i - startOffset + 1;
+    let y = cur.y, m = cur.m, d = dayNum, dim = false;
+    if(dayNum < 1){ dim = true; m = cur.m-1; d = prevDays + dayNum; if(m<0){m=11;y--;} }
+    else if(dayNum > daysIn){ dim = true; m = cur.m+1; d = dayNum - daysIn; if(m>11){m=0;y++;} }
+    const dateStr = iso(y,m,d);
+    const cell = document.createElement("div");
+    cell.className = "cell" + (dim?" dim":"") + (dateStr===tIso?" today":"") + (canAdd()?" can-add":"");
+    cell.setAttribute("role","gridcell");
+    const dn = document.createElement("div");
+    dn.className = "dnum"; dn.textContent = d;
+    cell.appendChild(dn);
+
+    const evs = visibleEvents(dateStr);
+    const MAX = 4;
+    evs.slice(0, MAX).forEach(ev => {
+      const b = document.createElement("button");
+      b.className = "pill";
+      b.style.setProperty("--c", SPORTS[ev.sport]?.c || "#888");
+      b.innerHTML = esc(ev.title) + (ev.time && !ev.title.includes(ev.time) ? '<span class="t">'+esc(ev.time)+'</span>' : "");
+      b.addEventListener("click", e => { e.stopPropagation(); openDetail(ev.id); });
+      cell.appendChild(b);
+    });
+    if(evs.length > MAX){
+      const more = document.createElement("button");
+      more.className = "more"; more.textContent = "+" + (evs.length-MAX) + " more";
+      more.addEventListener("click", e => { e.stopPropagation(); openDay(dateStr); });
+      cell.appendChild(more);
+    }
+    // mobile dots
+    const dots = document.createElement("div"); dots.className = "dots";
+    evs.slice(0,6).forEach(ev => {
+      const s = document.createElement("i");
+      s.style.setProperty("--c", SPORTS[ev.sport]?.c || "#888");
+      dots.appendChild(s);
+    });
+    cell.appendChild(dots);
+
+    cell.addEventListener("click", () => {
+      if(window.innerWidth <= 760 || !canAdd()){ if(evs.length || !canAdd()) openDay(dateStr); else if(canAdd()) openForm({date:dateStr}); }
+      else openForm({date:dateStr});
+    });
+    weeksEl.appendChild(cell);
+  }
+}
+
+function renderList(){
+  listEl.innerHTML = "";
+  const daysIn = new Date(cur.y, cur.m+1, 0).getDate();
+  let any = false;
+  for(let d=1; d<=daysIn; d++){
+    const dateStr = iso(cur.y, cur.m, d);
+    const evs = visibleEvents(dateStr);
+    if(!evs.length) continue;
+    any = true;
+    const block = document.createElement("div"); block.className = "dayblock";
+    const dt = new Date(cur.y, cur.m, d);
+    block.innerHTML = '<h3>' + DOWS[dt.getDay()] + ' ' + MONTHS[cur.m] + ' ' + d + (dateStr===todayISO()? ' <small>— today</small>':'') + '</h3>';
+    evs.forEach(ev => {
+      const r = document.createElement("button");
+      r.className = "rowitem";
+      r.style.setProperty("--c", SPORTS[ev.sport]?.c || "#888");
+      r.innerHTML = '<span class="dot"></span><span class="time">'+esc(ev.time||"")+'</span><span class="what">'+esc(ev.title)+'</span>';
+      r.addEventListener("click", () => openDetail(ev.id));
+      block.appendChild(r);
+    });
+    listEl.appendChild(block);
+  }
+  if(!any) listEl.innerHTML = '<div class="dayblock"><div class="empty">No events this month' + (hiddenSports.size? " with these filters":"") + '. ' + (canAdd()? 'Use <b>+ Add event</b> to put one on the calendar.':'') + '</div></div>';
+}
+
+function renderLegend(){
+  const lg = document.getElementById("legend");
+  lg.innerHTML = '<span class="lab">Show:</span>';
+  Object.entries(SPORTS).forEach(([name, s]) => {
+    const b = document.createElement("button");
+    b.className = "chip" + (hiddenSports.has(name) ? " off" : "");
+    b.setAttribute("aria-pressed", hiddenSports.has(name) ? "false" : "true");
+    b.style.setProperty("--c", s.c);
+    b.innerHTML = '<span class="dot"></span>' + esc(name);
+    b.addEventListener("click", () => {
+      if(hiddenSports.has(name)) hiddenSports.delete(name); else hiddenSports.add(name);
+      render();
+    });
+    lg.appendChild(b);
+  });
+  if(hiddenSports.size){
+    const clear = document.createElement("button");
+    clear.className = "chip clear"; clear.textContent = "Show all";
+    clear.addEventListener("click", () => { hiddenSports.clear(); render(); });
+    lg.appendChild(clear);
+  }
+}
+
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+/* ---------- form ---------- */
+const form = {
+  scrim: document.getElementById("formscrim"),
+  date: document.getElementById("f-date"),
+  sports: document.getElementById("f-sports"),
+  type: document.getElementById("f-type"),
+  ha: document.getElementById("f-ha"),
+  opp: document.getElementById("f-opp"),
+  v: document.getElementById("f-v"), jv: document.getElementById("f-jv"),
+  start: document.getElementById("f-start"), end: document.getElementById("f-end"),
+  notes: document.getElementById("f-notes"),
+  repeat: document.getElementById("f-repeat"), until: document.getElementById("f-until"),
+  preview: document.getElementById("preview"),
+  sel: {sport:"Volleyball", type:"practice", away:false}
+};
+
+function buildSportButtons(){
+  form.sports.innerHTML = "";
+  Object.entries(SPORTS).forEach(([name, s]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "sportbtn";
+    b.style.setProperty("--c", s.c);
+    b.innerHTML = '<span class="dot"></span>' + esc(name);
+    b.dataset.sport = name;
+    b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", () => { form.sel.sport = name; syncSportButtons(); updatePreview(); });
+    form.sports.appendChild(b);
+  });
+}
+function syncSportButtons(){
+  [...form.sports.children].forEach(b => b.setAttribute("aria-pressed", b.dataset.sport === form.sel.sport ? "true" : "false"));
+}
+function segInit(segEl, onpick){
+  [...segEl.children].forEach(b => b.addEventListener("click", () => {
+    [...segEl.children].forEach(x => x.setAttribute("aria-pressed","false"));
+    b.setAttribute("aria-pressed","true");
+    onpick(b.dataset.v);
+  }));
+}
+segInit(form.type, v => { form.sel.type = v; document.getElementById("gamefields").style.display = v==="game" ? "flex" : "none"; updatePreview(); });
+segInit(form.ha, v => { form.sel.away = v==="away"; updatePreview(); });
+form.repeat.addEventListener("change", () => {
+  document.getElementById("untilrow").classList.toggle("show", form.repeat.checked);
+  if(form.repeat.checked && !form.until.value){
+    const d = fromISO(form.date.value || todayISO()); d.setDate(d.getDate() + 70);
+    form.until.value = iso(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+});
+["input","change"].forEach(evt => {
+  [form.opp, form.start, form.end, form.notes, form.v, form.jv, form.date].forEach(el => el.addEventListener(evt, updatePreview));
+});
+
+function currentFields(){
+  return {
+    sport: form.sel.sport, type: form.sel.type, away: form.sel.away,
+    opponent: form.opp.value.trim(), v: form.v.checked, jv: form.jv.checked,
+    start: form.start.value, end: form.end.value, notes: form.notes.value.trim()
+  };
+}
+function updatePreview(){
+  const f = currentFields();
+  form.preview.innerHTML = "On the calendar: <b>" + esc(composeTitle(f)) + "</b>";
+}
+
+function openForm(opts){
+  if(!canAdd()) return;
+  editingId = opts.editId || null;
+  document.getElementById("formtitle").textContent = editingId ? "Edit event" : "Add event";
+  const ev = editingId ? events.find(e => e.id === editingId) : null;
+
+  form.date.value = ev ? ev.date : (opts.date || todayISO());
+  form.sel.sport = ev ? ev.sport : (role === "coach" ? coachSport : "Volleyball");
+  form.sel.type = ev ? ev.type : "practice";
+  form.sel.away = ev ? !!ev.away : false;
+  form.opp.value = ev && ev.opponent ? ev.opponent : "";
+  form.v.checked = ev ? ev.v !== false : true;
+  form.jv.checked = ev ? !!ev.jv : false;
+  form.start.value = ev && ev.start ? ev.start : "";
+  form.end.value = ev && ev.end ? ev.end : "";
+  form.notes.value = ev && ev.notes ? ev.notes : "";
+  form.repeat.checked = false; form.until.value = "";
+  document.getElementById("untilrow").classList.remove("show");
+  document.getElementById("repeatwrap").style.display = editingId ? "none" : "";
+
+  // coach lock: only their sport
+  [...form.sports.children].forEach(b => {
+    b.disabled = role === "coach" && b.dataset.sport !== coachSport;
+    b.style.opacity = b.disabled ? .35 : 1;
+  });
+  syncSportButtons();
+  [...form.type.children].forEach(x => x.setAttribute("aria-pressed", x.dataset.v === form.sel.type ? "true":"false"));
+  document.getElementById("gamefields").style.display = form.sel.type === "game" ? "flex" : "none";
+  [...form.ha.children].forEach(x => x.setAttribute("aria-pressed", (x.dataset.v==="away") === form.sel.away ? "true":"false"));
+  updatePreview();
+  show("formscrim");
+  form.date.focus();
+}
+
+document.getElementById("savebtn").addEventListener("click", () => {
+  const f = currentFields();
+  const date = form.date.value;
+  if(!date){ toast("Pick a date first"); form.date.focus(); return; }
+  const timeStr = f.start ? fmtTime(f.start) + (f.end ? "-" + fmtTime(f.end) : "") : "";
+  const base = {
+    sport: f.sport, type: f.type, away: f.away, opponent: f.opponent,
+    v: f.v, jv: f.jv, start: f.start, end: f.end, notes: f.notes,
+    time: timeStr, title: composeTitle(f)
+  };
+  if(editingId){
+    const i = events.findIndex(e => e.id === editingId);
+    if(i > -1) events[i] = {...events[i], ...base, date};
+    toast("Event updated");
+  } else if(form.repeat.checked && form.until.value && form.until.value > date){
+    const seriesId = uid();
+    let d = fromISO(date); const until = fromISO(form.until.value); let n = 0;
+    while(d <= until && n < 40){
+      events.push({id:uid(), seriesId, date: iso(d.getFullYear(), d.getMonth(), d.getDate()), ...base});
+      d.setDate(d.getDate()+7); n++;
+    }
+    toast(n + " events added (weekly through " + form.until.value + ")");
+  } else {
+    events.push({id:uid(), date, ...base});
+    toast("Event added");
+  }
+  persist();
+  hide("formscrim");
+  const dt = fromISO(date); cur = {y:dt.getFullYear(), m:dt.getMonth()};
+  render();
+});
+
+/* ---------- detail ---------- */
+function openDetail(id){
+  const ev = events.find(e => e.id === id);
+  if(!ev) return;
+  const s = SPORTS[ev.sport] || {c:"#888"};
+  const body = document.getElementById("detailbody");
+  const dt = fromISO(ev.date);
+  const inSeries = ev.seriesId && events.filter(e => e.seriesId === ev.seriesId).length > 1;
+  body.innerHTML =
+    '<div class="detail-head" style="--c:' + s.c + '"><span class="dot"></span><span class="detail-title">' + esc(ev.title) + '</span></div>' +
+    '<dl class="kv">' +
+      '<dt>Date</dt><dd>' + DOWS[dt.getDay()] + ', ' + MONTHS[dt.getMonth()] + ' ' + dt.getDate() + ', ' + dt.getFullYear() + '</dd>' +
+      '<dt>Sport</dt><dd>' + esc(ev.sport) + '</dd>' +
+      '<dt>Type</dt><dd>' + (TYPE_LABEL[ev.type] || "Event") + '</dd>' +
+      (ev.time ? '<dt>Time</dt><dd>' + esc(ev.time) + '</dd>' : '') +
+      (ev.opponent ? '<dt>' + (ev.away ? 'At' : 'Hosting') + '</dt><dd>' + esc(ev.opponent) + '</dd>' : '') +
+      (ev.notes ? '<dt>Notes</dt><dd>' + esc(ev.notes) + '</dd>' : '') +
+    '</dl>' +
+    (canEdit(ev)
+      ? '<div class="actions"><button class="danger" id="delbtn">Delete</button>' +
+        (inSeries ? '<button class="danger" id="delseries">Delete whole series</button>' : '') +
+        '<button class="primary" id="editbtn">Edit</button></div>'
+      : '<p class="hint">Viewing only — sign in as the AD or this sport’s coach to make changes.</p>');
+  show("detailscrim");
+  const del = document.getElementById("delbtn");
+  if(del) del.addEventListener("click", () => {
+    events = events.filter(e => e.id !== id); persist(); hide("detailscrim"); render(); toast("Event deleted");
+  });
+  const delS = document.getElementById("delseries");
+  if(delS) delS.addEventListener("click", () => {
+    events = events.filter(e => e.seriesId !== ev.seriesId); persist(); hide("detailscrim"); render(); toast("Series deleted");
+  });
+  const edit = document.getElementById("editbtn");
+  if(edit) edit.addEventListener("click", () => { hide("detailscrim"); openForm({editId:id}); });
+}
+
+/* ---------- day sheet ---------- */
+function openDay(dateStr){
+  const dt = fromISO(dateStr);
+  document.getElementById("daytitle").textContent = DOWS[dt.getDay()] + ", " + MONTHS[dt.getMonth()] + " " + dt.getDate();
+  const body = document.getElementById("daybody");
+  body.innerHTML = "";
+  const evs = visibleEvents(dateStr);
+  if(!evs.length) body.innerHTML = '<p class="hint">Nothing scheduled.</p>';
+  evs.forEach(ev => {
+    const r = document.createElement("button");
+    r.className = "rowitem";
+    r.style.setProperty("--c", SPORTS[ev.sport]?.c || "#888");
+    r.style.borderTop = "1px solid var(--line)";
+    r.innerHTML = '<span class="dot"></span><span class="time">'+esc(ev.time||"")+'</span><span class="what">'+esc(ev.title)+'</span>';
+    r.addEventListener("click", () => { hide("dayscrim"); openDetail(ev.id); });
+    body.appendChild(r);
+  });
+  if(canAdd()){
+    const a = document.createElement("button");
+    a.className = "primary"; a.textContent = "+ Add event on this day"; a.style.alignSelf = "flex-start";
+    a.addEventListener("click", () => { hide("dayscrim"); openForm({date:dateStr}); });
+    body.appendChild(a);
+  }
+  show("dayscrim");
+}
+
+/* ---------- dialogs / toast ---------- */
+function show(id){ document.getElementById(id).classList.add("show"); }
+function hide(id){ document.getElementById(id).classList.remove("show"); }
+document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", () => hide(b.dataset.close)));
+document.querySelectorAll(".scrim").forEach(s => s.addEventListener("click", e => { if(e.target === s) s.classList.remove("show"); }));
+document.addEventListener("keydown", e => { if(e.key === "Escape") document.querySelectorAll(".scrim.show").forEach(s => s.classList.remove("show")); });
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+/* ---------- top controls ---------- */
+document.getElementById("prev").addEventListener("click", () => { cur.m--; if(cur.m<0){cur.m=11; cur.y--;} render(); });
+document.getElementById("next").addEventListener("click", () => { cur.m++; if(cur.m>11){cur.m=0; cur.y++;} render(); });
+document.getElementById("todaybtn").addEventListener("click", () => { const t = new Date(); cur = {y:t.getFullYear(), m:t.getMonth()}; render(); });
+document.getElementById("v-month").addEventListener("click", () => setView("month"));
+document.getElementById("v-list").addEventListener("click", () => setView("list"));
+function setView(v){
+  view = v;
+  document.getElementById("v-month").setAttribute("aria-pressed", v==="month" ? "true":"false");
+  document.getElementById("v-list").setAttribute("aria-pressed", v==="list" ? "true":"false");
+  render();
+}
+document.getElementById("addbtn").addEventListener("click", () => openForm({date: iso(cur.y, cur.m, 1)}));
+
+/* roles */
+const roleBtns = {ad:"role-ad", coach:"role-coach", public:"role-public"};
+Object.entries(roleBtns).forEach(([r, id]) => {
+  document.getElementById(id).addEventListener("click", () => setRole(r));
+});
+function setRole(r){
+  role = r;
+  Object.entries(roleBtns).forEach(([k, id]) => document.getElementById(id).setAttribute("aria-pressed", k===r ? "true":"false"));
+  document.getElementById("coachpick").classList.toggle("show", r === "coach");
+  document.getElementById("addbtn").style.display = canAdd() ? "" : "none";
+  toast(r === "ad" ? "Athletic Director — full control" : r === "coach" ? "Coach — you can add and edit " + coachSport + " only" : "Public view — read only");
+  render();
+}
+const coachSel = document.getElementById("coachsport");
+Object.keys(SPORTS).filter(s => s !== "School").forEach(s => {
+  const o = document.createElement("option"); o.value = s; o.textContent = s; coachSel.appendChild(o);
+});
+coachSel.addEventListener("change", () => { coachSport = coachSel.value; toast("Coach — you can add and edit " + coachSport + " only"); render(); });
+
+/* ---------- init ---------- */
+buildSportButtons();
+cur = {y:2026, m:8}; // open on September 2026 where the seeded schedule lives
+render();
+</script>
+</body>
+</html>
